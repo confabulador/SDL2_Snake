@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
+#include <stdlib.h>
+#include <time.h>
 #include "headerSDL.h"
 
 SDL_Window *window = NULL;
@@ -19,6 +21,12 @@ struct ball {
   int my;
 } ball;
 
+struct food {
+  float x;
+  float y;
+  float largura;
+  float altura;
+} food;
 
 int init_window(void){
   if(SDL_Init(SDL_INIT_EVERYTHING) != 0){
@@ -48,6 +56,29 @@ int init_window(void){
   return TRUE;
 }
 
+void body_grow(){
+  ball.quantidade ++;
+  ball.x = realloc(ball.x, sizeof(float) * (ball.quantidade+1));
+  ball.y = realloc(ball.y, sizeof(float) * (ball.quantidade+1));
+  
+  ball.x[ball.quantidade] = ball.x[ball.quantidade-1] + ball.mx;
+  ball.y[ball.quantidade] = ball.y[ball.quantidade-1] + ball.my;
+}
+
+void new_food(){
+  while(TRUE){
+    float nx = 20 * (int) get_rand(1,(LARGURA-20))/20;
+    float ny = 20 * (int) get_rand(1,(ALTURA-20)/20);
+    if (nx != food.x && ny != food.y){
+      food.x = nx;
+      food.y = ny;
+      break;
+    }
+  }
+  
+
+}
+
 void check_collision(){
   
   /* verificando se bateu em parede */
@@ -55,11 +86,26 @@ void check_collision(){
     janela_ativa = FALSE;
   }
 
+  for (int i = 0; i < ball.quantidade; i ++){
+    if (ball.x[ball.quantidade] == ball.x[i] && ball.y[ball.quantidade] == ball.y[i]){
+      janela_ativa = FALSE;
+    }
+  }
+
+  if (food.x < ball.x[ball.quantidade] + ball.altura && food.x + food.altura > ball.x[ball.quantidade] && food.y < ball.y[ball.quantidade] + ball.largura && food.y + food.largura > ball.y[ball.quantidade]){
+    new_food();
+    body_grow();
+  }
+
+
 }
 void setup(){
-  ball.quantidade = 20;
-  ball.x = calloc(ball.quantidade,sizeof(float));
-  ball.y = calloc(ball.quantidade,sizeof(float));
+  
+  srand(time(NULL));
+
+  ball.quantidade = 3;
+  ball.x = calloc(ball.quantidade+1,sizeof(float));
+  ball.y = calloc(ball.quantidade+1,sizeof(float));
   ball.my = MOVIMENTO;
 
   for (int i = ball.quantidade ; i > 0; i -= 1){
@@ -68,6 +114,12 @@ void setup(){
   }
   ball.largura = 20;
   ball.altura = 20;
+
+  food.x = get_rand(15 * (ball.quantidade + 2), LARGURA- 20);
+  food.y = get_rand(15 * (ball.quantidade +2), ALTURA - 20);
+  food.largura = 20;
+  food.altura = 20;
+
 }
 
 void process_input(){
@@ -84,18 +136,22 @@ void process_input(){
 
 
       if(KEY == SDLK_UP){
+        if(ball.my == MOVIMENTO) break;
         ball.my = -MOVIMENTO;
         ball.mx = 0;
       }
       if(KEY == SDLK_DOWN){
+        if(ball.my == -MOVIMENTO) break;
           ball.my = MOVIMENTO;
           ball.mx = 0;
       }
       if(KEY == SDLK_RIGHT){
+        if(ball.mx == -MOVIMENTO) break;
         ball.mx = MOVIMENTO;
         ball.my = 0;
       }
       if(KEY == SDLK_LEFT){
+        if(ball.mx == MOVIMENTO) break;
         ball.mx = -MOVIMENTO;
         ball.my = 0;
       }
@@ -135,9 +191,20 @@ void render(void){
       ball.largura,
       ball.altura
     };
-    SDL_SetRenderDrawColor(renderer,100,255,contador*-10,255);
+    SDL_SetRenderDrawColor(renderer,100,255,contador*-3,255);
     SDL_RenderFillRect(renderer,&ball_rect);
   }
+
+
+  /* renderizar comida no mapa*/
+  SDL_Rect food_rect = {
+    food.x,
+    food.y,
+    food.largura,
+    food.altura
+  };
+  SDL_SetRenderDrawColor(renderer,255,0,0,255);
+  SDL_RenderFillRect(renderer,&food_rect);
   
   check_collision();
 
@@ -161,7 +228,7 @@ int main(void){
     update();
     render();
   }
-
+  SDL_Delay(2000);
   window_killer();
   
 

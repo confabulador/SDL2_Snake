@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #define FALSE 0
 #define TRUE 1
 
@@ -8,5 +10,12 @@
 
 #define KEY event.key.keysym.sym
 
-#define FPS 10
+#define FPS 15
 #define FRAME_TARGET_TIME (1000 / FPS)
+
+
+size_t get_rand(size_t min,size_t max){
+
+  size_t retval = rand() % (max - min + 1) + min;
+  return retval;
+}
